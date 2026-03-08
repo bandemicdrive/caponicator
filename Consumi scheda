@@ -1,0 +1,9 @@
+Modalità Operativa 	     Stato Componenti	                             Consumo Medio (Stimato)	Note
+
+Normale (Active)	       ESP32-S3 ON + LoRa ON	                       110 - 130 mA	  Con schermo OLED acceso e radio in idle. Picchi di 250+ mA in trasmissione.
+Light Sleep	             ESP32-S3 (RAM mantenuta) + Radio RX + bt	         ~9 - 11 mA    	Risveglio quasi istantaneo. Può essere risvegliato da BT/BLE e interrupt LoRa (DIO1).
+Deep Sleep (RX LoRa)	   ESP32-S3 OFF + Radio SX1262 RX	               ~4.5 - 8 mA	  Il chip SX1262 rimane in "RX Continuous". Al segnale, sveglia l'ESP32 tramite pin interrupt.
+Deep Sleep (Duty Cycle)	 ESP32-S3 OFF + Radio in ascolto periodico	   ~1.5 - 2 mA	  La radio si accende solo per brevi istanti per cercare il preambolo del messaggio.
+Deep Sleep Totale	       Tutto OFF (Timer o Pulsante)	                 < 20 µA	      Valore nominale Heltec. In questo stato NON può ricevere messaggi LoRa.
+
+tabella comparativa dei consumi stimati per la Heltec V4 basata su dati tecnici e test di community
