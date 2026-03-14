@@ -1,24 +1,38 @@
 /*
   RadioLib SX126x Ping-Pong 
-  For default module settings, see the wiki page
-  https://github.com/jgromes/RadioLib/wiki/Default-configuration#sx126x---lora-modem
 
-  For full API reference, see the GitHub Pages
-  https://jgromes.github.io/RadioLib/
+  codice brutto ma funziona, led sul pin 35.
+  potenza bassa, questi risultati dall'altra parte della casa con ostacoli:
+    SX1262] Pacchetto ricevuto:
+    RSSI: -51.00 dBm  
+    SNR: -0.25 dB
+  fin troppa  a 8 !  con poca piu potenza assordi ricevitore!!!
+  occhio a casa!! . domani provo outdoor
+  
+  una scheda iniziatrice (decommentare #define INITIATING_NODE) invia messaggio e si mette in ascolto.
+   dopo 5 sec riprova. se riceve risposta comincia ping pong con scheda ricevente.
+
+   pensato di fare prime prove  con iniziatrice a casa con monitor seriale acceso per telemetria
+    e l'altra in giro da accendere ogni tanto per vedere se riceve (dal led che lampeggia) 
+
+  per scheda iniziatrice :
+  in riga 115 meglio commentare  Serial.println(F("[SX1262] Timeout! Nessuna risposta. Riprovo l'invio...")); 
+  cosi da non intasare monitor seriale e avere solo i dati telemetria
 */
 
-// include the library
+
 #include <RadioLib.h>
 
 // uncomment the following only on one
-// of the nodes to initiate the pings 
-//#de fine INITIATING_NODE                       //+++++      +++++++   +++++++  ***********
+// of the nodes to initiate the pings
+                                   //+++++      +++++++   +++++++  ***********
+//#define INITIATING_NODE
 
 // SX1262 has the following connections:
 // (NSS pin, DIO1 pin, NRST pin, BUSY pin)
 SX1262 radio = new Module(8, 14, 12, 13);
 
-
+const int ledPin = 35; 
 
 // save transmission states between loops
 int transmissionState = RADIOLIB_ERR_NONE;
@@ -48,6 +62,8 @@ void setFlag(void) {
 
 void setup() {
   Serial.begin(115200);
+
+  pinMode(ledPin, OUTPUT);
 
   // initialize SX1262 
   Serial.print(F("[SX1262] Initializing ... "));
@@ -143,12 +159,14 @@ void loop() {
         Serial.print(F("SNR: ")); Serial.print(radio.getSNR()); Serial.println(F(" dB"));
       }
 
-      // Breve pausa prima di rispondere,
+      // Breve pausa prima di rispondere e feedback led per .
+      digitalWrite(ledPin, HIGH); 
       delay(300);
+      digitalWrite(ledPin, LOW);
 
       // Rispondiamo al mittente
       Serial.print(F("[SX1262] Invio risposta... "));
-      transmissionState = radio.startTransmit("aloha");
+      transmissionState = radio.startTransmit("alo");
       transmitFlag = true;
     }
   }
