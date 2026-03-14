@@ -1,0 +1,12 @@
+Qui guardando esempi si capiscono i differenti modi funzionamento della scheda lora
+
+https://github.com/jgromes/RadioLib/tree/master/examples/SX126x
+
+pin sx1262 su esp32 v4:
+NSS_CS 8
+RST_LORA 12
+BUSY_LORA 13
+DIO1 14
+SCK 9
+MOSI 10
+MISO 11
