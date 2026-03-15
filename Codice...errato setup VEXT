@@ -1,0 +1,69 @@
+morale della favola....con libreria ufficiale Heltec si avrebbero meno problemi....ma meno personalizzazione
+
+il codice prima prova funziona ma sx1262 non e' correttamente alimentato.
+quello che da tensione al chip antenna lora (e oled nel caso v4) e' il pin VEXT
+le prove che ho fatto finora funzionano perche sono a bassa potenza e chip prende corrente da collegamento spi. 
+per funzionare correttamente su v4 bisogna dare alimentazione mettendo VEXT su low . ti condivido suugerimenti copilot:
+
+Domanda:
+anche senza portare a low il pin vext funziona. come mai?
+
+risposta:
+
+Il fatto che funzioni anche senza impostare VEXT a LOW può sembrare strano, ma ha una spiegazione tecnica legata a come
+è progettato l'hardware delle schede Heltec (specialmente dalla V3 in poi).
+
+Ecco i motivi principali per cui il tuo chip LoRa sta ricevendo alimentazione "per vie traverse":
+1. Il fenomeno della "Phantom Powering" (Alimentazione Fantasma)
+
+Questo è il motivo più comune. Anche se il regolatore principale per la radio è spento, il chip LoRa (SX1262) è collegato
+all'ESP32 tramite i pin del bus SPI (NSS, SCK, MOSI) e i pin di controllo (RESET, BUSY).
+
+    Se i pin dell'ESP32 sono alti (3.3V), la corrente può "scorrere" attraverso i diodi di protezione interni del chip SX1262
+    verso la sua linea di alimentazione interna.
+
+    Il rischio: Questo tipo di alimentazione è instabile e limitato. Il chip potrebbe accendersi e rispondere ai comandi base, 
+    ma nel momento in cui deve trasmettere (TX), richiede un picco di corrente (circa 100-120mA) che i pin di segnale non possono fornire.
+    Risultato? Il chip si resetta o il segnale RF è debolissimo.
+
+2. Stato del Pin al Boot (Default High/Low)
+
+Sull'ESP32-S3 (il cuore della V4), i GPIO non sono sempre "fluttuanti" all'avvio. 
+Alcuni pin hanno resistenze di pull-up o pull-down interne attive di default.
+
+    Se il MOSFET che controlla il Vext è un canale P (come spesso accade), potrebbe trovarsi in uno stato parzialmente conduttivo 
+    se il gate non è tenuto forzatamente alto.
+
+    In alcune versioni del bootloader Heltec, il pin Vext viene inizializzato automaticamente per permettere il funzionamento del display OLED
+    (che spesso condivide la stessa linea di alimentazione).
+
+3. Differenze tra V3 e V4 (Circuito di Reset)
+
+Nella versione V4, Heltec ha ottimizzato il circuito di gestione energetica. Se stai alimentando la scheda via USB, 
+il circuito Vext potrebbe essere bypassato o mantenuto attivo da un segnale di feedback per garantire che la scheda 
+sia pronta all'uso immediato durante il debug.
+
+Perché dovresti comunque scriverlo nel codice?
+
+Anche se "sembra" funzionare ora, è una pratica pericolosa per due ragioni:
+
+    Affidabilità: Senza VEXT a LOW, la tensione sul chip radio potrebbe scendere sotto la soglia minima durante la trasmissione LoRa,
+    causando pacchetti corrotti o il crash del chip.
+
+    Consumo a batteria: Se non controlli esplicitamente quel pin, quando metterai l'ESP32 in Deep Sleep, la radio potrebbe rimanere 
+    in quello stato di "alimentazione fantasma", drenando la batteria in pochissimo tempo.
+
+    Verifica rapida: Prova a misurare con un tester la portata del segnale. Senza Vext e senza setDio2AsRfSwitch(), probabilmente non riuscirai
+    a superare i 10-20 metri di distanza, mentre un modulo ben configurato copre chilometri.
+
+Consiglio per il tuo codice
+
+Ti suggerisco di aggiungere questa riga per essere "pulito" a livello hardware:
+C++
+
+// Nel setup, prima di radio.begin()
+pinMode(Vext, OUTPUT);
+digitalWrite(Vext, LOW); 
+
+In questo modo forzi il MOSFET ad aprirsi completamente e garantisci alla radio tutta la corrente di cui ha bisogno
+per trasmettere con i suoi 22dBm di potenza massima.
